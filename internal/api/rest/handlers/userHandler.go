@@ -2,26 +2,31 @@ package handlers
 
 import (
 	"go-ecommerce-app/internal/api/rest"
+	"go-ecommerce-app/internal/dto"
+	"go-ecommerce-app/internal/service"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type UserHandler struct {
-	// svc UserService
+	svc service.UserService
 }
 
 func SetupUserRoutes(rh *rest.RestHandler) {
 	app := rh.App
 
-	handler := UserHandler{}
+	svc := service.UserService{}
+	handler := UserHandler{
+		svc: svc,
+	}
 
 	// Public endpoint
 	app.Post("/register", handler.Register)
 	app.Post("/login", handler.Login)
 
 	// Private endpoint
-	app.Get("/verify", handler.GetVerifitationCode)
+	app.Get("/verify", handler.GetVerificationCode)
 	app.Post("/verify", handler.Verify)
 	app.Post("/profile", handler.CreateProfile)
 	app.Get("/profile", handler.GetProfile)
@@ -35,8 +40,24 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 }
 
 func (h *UserHandler) Register(ctx *fiber.Ctx) error {
+	var user dto.UserSignup
+	if err := ctx.BodyParser(&user); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(&fiber.Map{
+			"message": "please provide valid inputs",
+			"error":   err.Error(),
+		})
+	}
+
+	token, err := h.svc.Register(user)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"message": "error on signup",
+			"error":   err.Error(),
+		})
+	}
+
 	return ctx.Status(http.StatusCreated).JSON(&fiber.Map{
-		"message": "register",
+		"token": token,
 	})
 }
 
@@ -46,7 +67,7 @@ func (h *UserHandler) Login(ctx *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) GetVerifitationCode(ctx *fiber.Ctx) error {
+func (h *UserHandler) GetVerificationCode(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
 		"message": "get verifitation code",
 	})
@@ -93,7 +114,6 @@ func (h *UserHandler) GetOrders(ctx *fiber.Ctx) error {
 		"message": "get orders",
 	})
 }
-
 
 func (h *UserHandler) BecomeSeller(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
