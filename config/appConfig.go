@@ -10,6 +10,7 @@ import (
 type AppConfig struct {
 	ServerPort string
 	DSN        string
+	JWTSecret  string
 }
 
 func SetupEnv(envFileName string) (cfg AppConfig, err error) {
@@ -19,16 +20,22 @@ func SetupEnv(envFileName string) (cfg AppConfig, err error) {
 
 	httpPort := os.Getenv("HTTP_PORT")
 	if len(httpPort) < 1 {
-		return AppConfig{}, errors.New("env HTTP_PORT variable not found")
+		return AppConfig{}, errors.New("http port variable not found")
 	}
 
 	dsn := os.Getenv("DSN")
 	if len(dsn) < 1 {
-		return AppConfig{}, errors.New("env DSN variable not found")
+		return AppConfig{}, errors.New("dsn variable not found")
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if len(dsn) < 1 {
+		return AppConfig{}, errors.New("jwt secret variable not found")
 	}
 
 	return AppConfig{
 		ServerPort: httpPort,
 		DSN:        dsn,
+		JWTSecret:  jwtSecret,
 	}, nil
 }

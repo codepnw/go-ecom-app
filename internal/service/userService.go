@@ -2,26 +2,39 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"go-ecommerce-app/internal/domain"
 	"go-ecommerce-app/internal/dto"
+	"go-ecommerce-app/internal/helper"
 	"go-ecommerce-app/internal/repository"
 )
 
 type UserService struct {
 	Repo repository.UserRepository
+	Auth helper.Auth
 }
 
 func (s UserService) Register(input dto.UserSignup) (string, error) {
+	hashedPassword, err := s.Auth.GenerateHashedPassword(input.Password)
+	if err != nil {
+		return "", err
+	}
+
 	user, err := s.Repo.CreateUser(domain.User{
 		Email:    input.Email,
-		Password: input.Password,
+		Password: hashedPassword,
 		Phone:    input.Phone,
 	})
+	if err != nil {
+		switch {
+		case err.Error() == `ERROR: duplicate key value violates unique constraint "uni_users_email" (SQLSTATE 23505)`:
+			return "", errors.New("email already exists")
+		default:
+			return "", err
+		}
+	}
 
-	userInfo := fmt.Sprintf("%v, %v, %v", user.ID, user.Email, user.UserType)
-
-	return userInfo, err
+	// generate token
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s UserService) findUserByEmail(email string) (*domain.User, error) {
@@ -36,9 +49,13 @@ func (s UserService) Login(email, password string) (string, error) {
 		return "", errors.New("user not found")
 	}
 
-	// TODO: compare password and generate token
+	// vertify password
+	if err = s.Auth.VerifyPassword(password, user.Password); err != nil {
+		return "", err
+	}
 
-	return user.Email, nil
+	// generate token
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {
