@@ -103,7 +103,31 @@ func (s UserService) GetVerificationCode(e domain.User) error {
 	return nil
 }
 
-func (s UserService) VerifyCode(id uint, code int) error {
+func (s UserService) VerifyCode(id uint, code string) error {
+	if s.isVerifiedUser(id) {
+		return errors.New("user already verified")
+	}
+
+	user, err := s.Repo.FindUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	if user.Code != code {
+		return errors.New("verification code does not match")
+	}
+
+	if !time.Now().Before(user.Expiry) {
+		return errors.New("verification code expired")
+	}
+
+	updateUser := domain.User{
+		Verified: true,
+	}
+
+	if _, err := s.Repo.UpdateUser(id, updateUser); err != nil {
+		return errors.New("unable to verify user")
+	}
 
 	return nil
 }

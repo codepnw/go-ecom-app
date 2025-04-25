@@ -30,4 +30,4 @@ dev.env
 .air.toml
 tmp/
 .vscode
-.note.txt
+*.txt
