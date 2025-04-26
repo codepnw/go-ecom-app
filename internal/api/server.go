@@ -16,6 +16,7 @@ import (
 func StartServer(config config.AppConfig) {
 	app := fiber.New()
 
+	// database
 	db, err := gorm.Open(postgres.Open(config.DSN), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("database connection error: %v\n", err)
@@ -23,7 +24,12 @@ func StartServer(config config.AppConfig) {
 	log.Println("database connected...")
 
 	// migrations
-	if err = db.AutoMigrate(&domain.User{}, &domain.BankAccount{}); err != nil {
+	if err = db.AutoMigrate(
+		&domain.User{}, 
+		&domain.BankAccount{},
+		&domain.Category{},
+		&domain.Product{},
+	); err != nil {
 		log.Fatalf("error migrations %v", err)
 	}
 	log.Println("migration successful")
@@ -45,5 +51,8 @@ func StartServer(config config.AppConfig) {
 }
 
 func setupRoutes(rh *rest.RestHandler) {
+	// user
 	handlers.SetupUserRoutes(rh)
+	// catalog
+	handlers.SetupCatalogRoutes(rh)
 }
