@@ -20,10 +20,13 @@ func StartServer(config config.AppConfig) {
 	if err != nil {
 		log.Fatalf("database connection error: %v\n", err)
 	}
-
 	log.Println("database connected...")
 
-	db.AutoMigrate(&domain.User{})
+	// migrations
+	if err = db.AutoMigrate(&domain.User{}, &domain.BankAccount{}); err != nil {
+		log.Fatalf("error migrations %v", err)
+	}
+	log.Println("migration successful")
 
 	auth := helper.SetupAuth(config.JWTSecret)
 
