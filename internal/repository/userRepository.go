@@ -21,6 +21,10 @@ type UserRepository interface {
 	UpdateCartItem(c domain.Cart) error
 	DeleteCartByID(id uint) error
 	DeleteCartItems(userID uint) error
+
+	// Profile
+	CreateProfile(e domain.Address) error
+	UpdateProfile(e domain.Address) error
 }
 
 type userRepository struct {
@@ -44,7 +48,7 @@ func (r userRepository) CreateUser(u domain.User) (domain.User, error) {
 func (r userRepository) FindUser(email string) (domain.User, error) {
 	var user domain.User
 
-	if err := r.db.First(&user, "email=?", email).Error; err != nil {
+	if err := r.db.Preload("Address").First(&user, "email=?", email).Error; err != nil {
 		return domain.User{}, err
 	}
 
@@ -54,7 +58,7 @@ func (r userRepository) FindUser(email string) (domain.User, error) {
 func (r userRepository) FindUserByID(id uint) (domain.User, error) {
 	var user domain.User
 
-	if err := r.db.First(&user, id).Error; err != nil {
+	if err := r.db.Preload("Address").First(&user, id).Error; err != nil {
 		return domain.User{}, err
 	}
 
@@ -108,5 +112,15 @@ func (r userRepository) DeleteCartByID(id uint) error {
 
 func (r userRepository) DeleteCartItems(userID uint) error {
 	err := r.db.Where("user_id=?", userID).Delete(&domain.Cart{}).Error
+	return err
+}
+
+// Profile
+func (r userRepository) CreateProfile(e domain.Address) error {
+	return r.db.Create(&e).Error
+}
+
+func (r userRepository) UpdateProfile(e domain.Address) error {
+	err := r.db.Where("user_id=?", e.UserID).Updates(e).Error
 	return err
 }

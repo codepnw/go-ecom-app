@@ -5,6 +5,7 @@ go 1.23.0
 require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/twilio/twilio-go v1.25.1
 	golang.org/x/crypto v0.37.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
@@ -21,7 +22,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	github.com/twilio/twilio-go v1.25.1 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 )

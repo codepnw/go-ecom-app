@@ -134,17 +134,87 @@ func (s UserService) VerifyCode(id uint, code string) error {
 	return nil
 }
 
-func (s UserService) CreateProfile(id uint, input any) error {
+func (s UserService) CreateProfile(id uint, input dto.ProfileInput) error {
+	// find user
+	user, err := s.Repo.FindUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	if input.FirstName != "" {
+		user.FirstName = input.FirstName
+	}
+
+	if input.LastName != "" {
+		user.LastName = input.LastName
+	}
+
+	// update user
+	_, err = s.Repo.UpdateUser(id, user)
+	if err != nil {
+		return err
+	}
+
+	// create address
+	address := domain.Address{
+		AddressInput1: input.AddressInput.AddressInput1,
+		AddressInput2: input.AddressInput.AddressInput2,
+		City:          input.AddressInput.City,
+		PostCode:      input.AddressInput.PostCode,
+		Country:       input.AddressInput.Country,
+		UserID:        id,
+	}
+
+	if err = s.Repo.CreateProfile(address); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (s UserService) GetProfile(id uint) (*domain.User, error) {
+	user, err := s.Repo.FindUserByID(id)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	return &user, nil
 }
 
-func (s UserService) UpdateProfile(id uint, input any) error {
+func (s UserService) UpdateProfile(id uint, input dto.ProfileInput) error {
+	// find user
+	user, err := s.Repo.FindUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	if input.FirstName != "" {
+		user.FirstName = input.FirstName
+	}
+
+	if input.LastName != "" {
+		user.LastName = input.LastName
+	}
+
+	// update user
+	_, err = s.Repo.UpdateUser(id, user)
+	if err != nil {
+		return err
+	}
+
+	address := domain.Address{
+		AddressInput1: input.AddressInput.AddressInput1,
+		AddressInput2: input.AddressInput.AddressInput2,
+		City:          input.AddressInput.City,
+		PostCode:      input.AddressInput.PostCode,
+		Country:       input.AddressInput.Country,
+		UserID:        id,
+	}
+
+	// update profile
+	if err = s.Repo.UpdateProfile(address); err != nil {
+		return err
+	}
 
 	return nil
 }

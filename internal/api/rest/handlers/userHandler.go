@@ -38,8 +38,10 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 	// Private endpoint
 	pvtRoutes.Get("/verify", handler.GetVerificationCode)
 	pvtRoutes.Post("/verify", handler.Verify)
+
 	pvtRoutes.Post("/profile", handler.CreateProfile)
 	pvtRoutes.Get("/profile", handler.GetProfile)
+	pvtRoutes.Patch("/profile", handler.UpdateProfile)
 
 	pvtRoutes.Post("/cart", handler.AddToCart)
 	pvtRoutes.Get("/cart", handler.GetCart)
@@ -131,15 +133,46 @@ func (h *UserHandler) Verify(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) CreateProfile(ctx *fiber.Ctx) error {
-	return ctx.Status(http.StatusCreated).JSON(&fiber.Map{
-		"message": "create profile",
-	})
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	req := dto.ProfileInput{}
+	if err := ctx.BodyParser(&req); err != nil {
+		return rest.BadRequestResponse(ctx, "")
+	}
+
+	// create profile
+	if err := h.svc.CreateProfile(user.ID, req); err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessCreated(ctx, "success", nil)
 }
 
 func (h *UserHandler) GetProfile(ctx *fiber.Ctx) error {
 	user := h.svc.Auth.GetCurrentUser(ctx)
 
-	return rest.SuccessResponse(ctx, "success", user)
+	profile, err := h.svc.GetProfile(user.ID)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessResponse(ctx, "success", profile)
+}
+
+func (h *UserHandler) UpdateProfile(ctx *fiber.Ctx) error {
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	req := dto.ProfileInput{}
+	if err := ctx.BodyParser(&req); err != nil {
+		return rest.BadRequestResponse(ctx, "")
+	}
+
+	// update profile
+	if err := h.svc.UpdateProfile(user.ID, req); err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessResponse(ctx, "profile updated", nil)
 }
 
 func (h *UserHandler) AddToCart(ctx *fiber.Ctx) error {
