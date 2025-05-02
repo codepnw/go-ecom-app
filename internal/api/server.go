@@ -29,6 +29,7 @@ func StartServer(config config.AppConfig) {
 		&domain.BankAccount{},
 		&domain.Category{},
 		&domain.Product{},
+		&domain.Cart{},
 	); err != nil {
 		log.Fatalf("error migrations %v", err)
 	}

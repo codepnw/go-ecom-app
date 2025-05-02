@@ -15,6 +15,10 @@ func InternalError(ctx *fiber.Ctx, err error) error {
 }
 
 func BadRequestResponse(ctx *fiber.Ctx, msg string) error {
+	if msg == "" {
+		msg = "please provide valid inputs"
+	}
+
 	return ctx.Status(http.StatusBadRequest).JSON(&fiber.Map{
 		"message": msg,
 	})

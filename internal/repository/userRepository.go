@@ -12,8 +12,15 @@ type UserRepository interface {
 	FindUser(email string) (domain.User, error)
 	FindUserByID(id uint) (domain.User, error)
 	UpdateUser(id uint, u domain.User) (domain.User, error)
-
 	CreateBankAccount(e domain.BankAccount) error
+
+	// Cart
+	FindCartItems(userID uint) ([]domain.Cart, error)
+	FindCartItem(userID, productID uint) (domain.Cart, error)
+	CreateCart(c domain.Cart) error
+	UpdateCartItem(c domain.Cart) error
+	DeleteCartByID(id uint) error
+	DeleteCartItems(userID uint) error
 }
 
 type userRepository struct {
@@ -67,4 +74,39 @@ func (r userRepository) UpdateUser(id uint, u domain.User) (domain.User, error) 
 
 func (r userRepository) CreateBankAccount(e domain.BankAccount) error {
 	return r.db.Create(&e).Error
+}
+
+// Cart
+func (r userRepository) FindCartItems(userID uint) ([]domain.Cart, error) {
+	var carts []domain.Cart
+	err := r.db.Where("user_id=?", userID).Find(&carts).Error
+
+	return carts, err
+}
+
+func (r userRepository) FindCartItem(userID, productID uint) (domain.Cart, error) {
+	cartItem := domain.Cart{}
+	err := r.db.Where("user_id=? AND product_id=?", userID, productID).First(&cartItem).Error
+
+	return cartItem, err
+}
+
+func (r userRepository) CreateCart(c domain.Cart) error {
+	return r.db.Create(&c).Error
+}
+
+func (r userRepository) UpdateCartItem(c domain.Cart) error {
+	var cart domain.Cart
+	err := r.db.Model(&cart).Clauses(clause.Returning{}).Where("id=?", c.ID).Updates(c).Error
+
+	return err
+}
+
+func (r userRepository) DeleteCartByID(id uint) error {
+	return r.db.Delete(&domain.Cart{}, id).Error
+}
+
+func (r userRepository) DeleteCartItems(userID uint) error {
+	err := r.db.Where("user_id=?", userID).Delete(&domain.Cart{}).Error
+	return err
 }

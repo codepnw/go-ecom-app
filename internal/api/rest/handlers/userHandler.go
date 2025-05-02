@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"go-ecommerce-app/internal/api/rest"
 	"go-ecommerce-app/internal/dto"
 	"go-ecommerce-app/internal/repository"
@@ -19,6 +20,7 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 
 	svc := service.UserService{
 		Repo:   repository.NewUserRepository(rh.DB),
+		CRepo:  repository.NewCatalogRepository(rh.DB),
 		Auth:   rh.Auth,
 		Config: rh.Config,
 	}
@@ -39,7 +41,7 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 	pvtRoutes.Post("/profile", handler.CreateProfile)
 	pvtRoutes.Get("/profile", handler.GetProfile)
 
-	pvtRoutes.Post("/cart", handler.GetToCart)
+	pvtRoutes.Post("/cart", handler.AddToCart)
 	pvtRoutes.Get("/cart", handler.GetCart)
 	pvtRoutes.Post("/order", handler.CreateOrder)
 	pvtRoutes.Get("/order/:id", handler.GetOrders)
@@ -137,22 +139,35 @@ func (h *UserHandler) CreateProfile(ctx *fiber.Ctx) error {
 func (h *UserHandler) GetProfile(ctx *fiber.Ctx) error {
 	user := h.svc.Auth.GetCurrentUser(ctx)
 
-	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "get profile",
-		"data":    user,
-	})
+	return rest.SuccessResponse(ctx, "success", user)
 }
 
-func (h *UserHandler) GetToCart(ctx *fiber.Ctx) error {
-	return ctx.Status(http.StatusCreated).JSON(&fiber.Map{
-		"message": "add to cart",
-	})
+func (h *UserHandler) AddToCart(ctx *fiber.Ctx) error {
+	req := dto.CreateCartRequest{}
+
+	if err := ctx.BodyParser(&req); err != nil {
+		return rest.BadRequestResponse(ctx, "")
+	}
+
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	cartItems, err := h.svc.CreateCart(req, user)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessCreated(ctx, "success", cartItems)
 }
 
 func (h *UserHandler) GetCart(ctx *fiber.Ctx) error {
-	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "get cart",
-	})
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	cart, err := h.svc.FindCart(user.ID)
+	if err != nil {
+		return rest.InternalError(ctx, errors.New("cart does not exist"))
+	}
+
+	return rest.SuccessResponse(ctx, "success", cart)
 }
 
 func (h *UserHandler) CreateOrder(ctx *fiber.Ctx) error {
