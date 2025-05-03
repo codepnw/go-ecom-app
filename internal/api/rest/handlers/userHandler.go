@@ -45,8 +45,10 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 
 	pvtRoutes.Post("/cart", handler.AddToCart)
 	pvtRoutes.Get("/cart", handler.GetCart)
+
 	pvtRoutes.Post("/order", handler.CreateOrder)
-	pvtRoutes.Get("/order/:id", handler.GetOrders)
+	pvtRoutes.Get("/order", handler.GetOrders)
+	pvtRoutes.Get("/order/:id", handler.GetOrder)
 
 	pvtRoutes.Post("/become-seller", handler.BecomeSeller)
 }
@@ -204,15 +206,37 @@ func (h *UserHandler) GetCart(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) CreateOrder(ctx *fiber.Ctx) error {
-	return ctx.Status(http.StatusCreated).JSON(&fiber.Map{
-		"message": "create order",
-	})
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	orderRef, err := h.svc.CreateOrder(user)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessCreated(ctx, "success", orderRef)
 }
 
 func (h *UserHandler) GetOrders(ctx *fiber.Ctx) error {
-	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "get orders",
-	})
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	orders, err := h.svc.GetOrders(user)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessResponse(ctx, "success", orders)
+}
+
+func (h *UserHandler) GetOrder(ctx *fiber.Ctx) error {
+	orderID, _ := ctx.ParamsInt("id")
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	order, err := h.svc.GetOrderByID(uint(orderID), user.ID)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessResponse(ctx, "success", order)
 }
 
 func (h *UserHandler) BecomeSeller(ctx *fiber.Ctx) error {

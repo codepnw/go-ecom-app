@@ -10,6 +10,7 @@ import (
 	"go-ecommerce-app/internal/repository"
 	"go-ecommerce-app/pkg/notification"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -264,8 +265,10 @@ func (s UserService) FindCart(id uint) ([]domain.Cart, error) {
 }
 
 func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]domain.Cart, error) {
+	// check if cart is exist
 	cart, _ := s.Repo.FindCartItem(u.ID, input.ProductID)
-	if cart.ID < 1 {
+
+	if cart.ID > 0 {
 		if input.ProductID == 0 {
 			return nil, errors.New("please provide a valid product id")
 		}
@@ -278,18 +281,16 @@ func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]d
 		} else {
 			// update cart item
 			cart.Qty = input.Qty
-			if err := s.Repo.UpdateCartItem(cart); err != nil {
+			if err := s.Repo.UpdateCart(cart); err != nil {
 				log.Printf("error updating cart item: %v", err)
 				return nil, errors.New("error updating cart items")
 			}
 		}
-		// find cart items
-		return s.Repo.FindCartItems(u.ID)
 
 	} else {
 		// check if product exist
 		product, _ := s.CRepo.FindProductByID(int(input.ProductID))
-		if product.ID > 0 {
+		if product.ID < 1 {
 			return nil, errors.New("product not found to create cart items")
 		}
 
@@ -313,16 +314,76 @@ func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]d
 }
 
 func (s UserService) CreateOrder(u domain.User) (int, error) {
+	// find user cart cartItems
+	cartItems, err := s.Repo.FindCartItems(u.ID)
+	if err != nil {
+		return 0, errors.New("error finding cart items")
+	}
 
-	return 0, nil
+	if len(cartItems) == 0 {
+		return 0, errors.New("cart is empty, cannot create order")
+	}
+
+	// find success reference status
+	paymentID := "PAY123456"
+	txnID := "TXN123123"
+	orderRef, _ := helper.RandomNumbers(8)
+
+	// create order with generate order items
+	var amount float64
+	var orderItems []domain.OrderItem
+
+	for _, item := range cartItems {
+		amount += item.Price * float64(item.Qty)
+		orderItems = append(orderItems, domain.OrderItem{
+			ProductID: item.ProductID,
+			Qty:       item.Qty,
+			Price:     item.Price,
+			Name:      item.Name,
+			ImageUrl:  item.ImageUrl,
+			SellerID:  item.SellerID,
+		})
+	}
+
+	orderRefInt, _ := strconv.Atoi(orderRef)
+
+	order := domain.Order{
+		UserID:         u.ID,
+		PaymentID:      paymentID,
+		TransactionID:  txnID,
+		OrderRefNumber: uint(orderRefInt),
+		Amount:         amount,
+		Items:          orderItems,
+	}
+
+	if err = s.Repo.CreateOrder(order); err != nil {
+		return 0, err
+	}
+
+	// TODO: send email to user order details
+
+	// remove cart items
+	if err = s.Repo.DeleteCartItems(u.ID); err != nil {
+		return 0, err
+	}
+
+	return orderRefInt, nil
 }
 
-func (s UserService) GetOrders(u domain.User) ([]any, error) {
+func (s UserService) GetOrders(u domain.User) ([]domain.Order, error) {
+	orders, err := s.Repo.FindOrders(u.ID)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	return orders, nil
 }
 
-func (s UserService) GetOrderByID(id, userID uint) (any, error) {
+func (s UserService) GetOrderByID(orderID, userID uint) (domain.Order, error) {
+	order, err := s.Repo.FindOrderByID(orderID, userID)
+	if err != nil {
+		return domain.Order{}, err
+	}
 
-	return nil, nil
+	return order, nil
 }

@@ -25,12 +25,14 @@ func StartServer(config config.AppConfig) {
 
 	// migrations
 	if err = db.AutoMigrate(
-		&domain.User{}, 
+		&domain.User{},
 		&domain.Address{},
 		&domain.BankAccount{},
 		&domain.Category{},
 		&domain.Product{},
 		&domain.Cart{},
+		&domain.Order{},
+		&domain.OrderItem{},
 	); err != nil {
 		log.Fatalf("error migrations %v", err)
 	}
@@ -39,9 +41,9 @@ func StartServer(config config.AppConfig) {
 	auth := helper.SetupAuth(config.JWTSecret)
 
 	rh := &rest.RestHandler{
-		App:  app,
-		DB:   db,
-		Auth: auth,
+		App:    app,
+		DB:     db,
+		Auth:   auth,
 		Config: config,
 	}
 
