@@ -33,6 +33,7 @@ func StartServer(config config.AppConfig) {
 		&domain.Cart{},
 		&domain.Order{},
 		&domain.OrderItem{},
+		&domain.Payment{},
 	); err != nil {
 		log.Fatalf("error migrations %v", err)
 	}
@@ -59,4 +60,6 @@ func setupRoutes(rh *rest.RestHandler) {
 	handlers.SetupUserRoutes(rh)
 	// catalog
 	handlers.SetupCatalogRoutes(rh)
+	// transaction
+	handlers.SetupTransactionRoutes(rh)
 }
