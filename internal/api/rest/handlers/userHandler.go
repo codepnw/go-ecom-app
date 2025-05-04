@@ -197,12 +197,15 @@ func (h *UserHandler) AddToCart(ctx *fiber.Ctx) error {
 func (h *UserHandler) GetCart(ctx *fiber.Ctx) error {
 	user := h.svc.Auth.GetCurrentUser(ctx)
 
-	cart, err := h.svc.FindCart(user.ID)
+	cart, amount, err := h.svc.FindCart(user.ID)
 	if err != nil {
 		return rest.InternalError(ctx, errors.New("cart does not exist"))
 	}
 
-	return rest.SuccessResponse(ctx, "success", cart)
+	return rest.SuccessResponse(ctx, "success", &fiber.Map{
+		"cart": cart,
+		"amount": amount,
+	})
 }
 
 func (h *UserHandler) CreateOrder(ctx *fiber.Ctx) error {

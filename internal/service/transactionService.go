@@ -5,6 +5,8 @@ import (
 	"go-ecommerce-app/internal/dto"
 	"go-ecommerce-app/internal/helper"
 	"go-ecommerce-app/internal/repository"
+
+	"github.com/stripe/stripe-go/v82"
 )
 
 type TransactionService struct {
@@ -35,4 +37,21 @@ func (s TransactionService) GetOrderDetails(u domain.User, orderID uint) (dto.Se
 	}
 
 	return order, nil
+}
+
+func (s TransactionService) StoreCreatePayment(userID uint, ps *stripe.CheckoutSession, amount float64, orderID string) error {
+	payment := domain.Payment{
+		UserID:     userID,
+		Amount:     amount,
+		Status:     domain.PaymentStatusInitial,
+		PaymentUrl: ps.URL,
+		PaymentID:  ps.ID,
+		OrderID:    orderID,
+	}
+
+	return s.Repo.CreatePayment(&payment)
+}
+
+func (s TransactionService) GetActivePayment(userID uint) (*domain.Payment, error) {
+	return s.Repo.FindInitialPayment(userID)
 }

@@ -10,7 +10,6 @@ import (
 	"go-ecommerce-app/internal/repository"
 	"go-ecommerce-app/pkg/notification"
 	"log"
-	"strconv"
 	"time"
 )
 
@@ -255,13 +254,19 @@ func (s UserService) BecomeSeller(id uint, input dto.SellerInput) (string, error
 	return token, err
 }
 
-func (s UserService) FindCart(id uint) ([]domain.Cart, error) {
+func (s UserService) FindCart(id uint) ([]domain.Cart, float64, error) {
 	cartItems, err := s.Repo.FindCartItems(id)
 	if err != nil {
-		return nil, err
+		return nil, 0, errors.New("error on finding cart items")
 	}
 
-	return cartItems, nil
+	var totalAmount float64
+
+	for _, item := range cartItems {
+		totalAmount += item.Price * float64(item.Qty)
+	}
+
+	return cartItems, totalAmount, nil
 }
 
 func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]domain.Cart, error) {
@@ -313,15 +318,15 @@ func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]d
 	return s.Repo.FindCartItems(u.ID)
 }
 
-func (s UserService) CreateOrder(u domain.User) (int, error) {
+func (s UserService) CreateOrder(u domain.User) (string, error) {
 	// find user cart cartItems
 	cartItems, err := s.Repo.FindCartItems(u.ID)
 	if err != nil {
-		return 0, errors.New("error finding cart items")
+		return "", errors.New("error finding cart items")
 	}
 
 	if len(cartItems) == 0 {
-		return 0, errors.New("cart is empty, cannot create order")
+		return "", errors.New("cart is empty, cannot create order")
 	}
 
 	// find success reference status
@@ -345,29 +350,27 @@ func (s UserService) CreateOrder(u domain.User) (int, error) {
 		})
 	}
 
-	orderRefInt, _ := strconv.Atoi(orderRef)
-
 	order := domain.Order{
 		UserID:         u.ID,
 		PaymentID:      paymentID,
 		TransactionID:  txnID,
-		OrderRefNumber: uint(orderRefInt),
+		OrderRefNumber: orderRef,
 		Amount:         amount,
 		Items:          orderItems,
 	}
 
 	if err = s.Repo.CreateOrder(order); err != nil {
-		return 0, err
+		return "", err
 	}
 
 	// TODO: send email to user order details
 
 	// remove cart items
 	if err = s.Repo.DeleteCartItems(u.ID); err != nil {
-		return 0, err
+		return "", err
 	}
 
-	return orderRefInt, nil
+	return orderRef, nil
 }
 
 func (s UserService) GetOrders(u domain.User) ([]domain.Order, error) {

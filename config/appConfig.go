@@ -14,6 +14,9 @@ type AppConfig struct {
 	TwilioAccountSID   string
 	TwilioAccountToken string
 	TwilioFromPhone    string
+	StripeSecret       string
+	SuccessUrl         string
+	CancelUrl          string
 }
 
 func SetupEnv(envFileName string) (cfg AppConfig, err error) {
@@ -58,5 +61,8 @@ func SetupEnv(envFileName string) (cfg AppConfig, err error) {
 		TwilioAccountSID:   twilioAccountSID,
 		TwilioAccountToken: twilioAccountToken,
 		TwilioFromPhone:    twilioFromPhone,
+		StripeSecret:       os.Getenv("STRIPE_SECRET"),
+		SuccessUrl:         os.Getenv("SUCCESS_URL"),
+		CancelUrl:          os.Getenv("CANCEL_URL"),
 	}, nil
 }

@@ -8,7 +8,7 @@ type Order struct {
 	Status         string      `json:"status"`
 	Amount         float64     `json:"amount"`
 	TransactionID  string      `json:"transaction_id"`
-	OrderRefNumber uint        `json:"order_ref_number"`
+	OrderRefNumber string      `json:"order_ref_number"`
 	PaymentID      string      `json:"payment_id"`
 	Items          []OrderItem `json:"items"`
 	CreatedAt      time.Time   `gorm:"default:current_timestamp"`
